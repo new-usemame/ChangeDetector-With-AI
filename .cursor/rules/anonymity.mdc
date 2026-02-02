@@ -1,0 +1,14 @@
+---
+description: Anonymity rules for this repository
+globs: *
+alwaysApply: true
+---
+
+# Anonymity Rules
+
+When working in this repository:
+
+1. **Never include** references to: Condo97, acoundou, alex, or coundouriotis in any code, comments, documentation, or commit messages
+2. **Git commits** should use author "new_usemame" or "anonymous"
+3. **No personal identifiers** should be added to any files in this repository
+4. **Keep contributions anonymous** - do not add author names, emails, or other identifying information
