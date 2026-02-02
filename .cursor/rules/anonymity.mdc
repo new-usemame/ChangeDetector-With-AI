@@ -12,3 +12,12 @@ When working in this repository:
 2. **Git commits** should use author "new_usemame" or "anonymous"
 3. **No personal identifiers** should be added to any files in this repository
 4. **Keep contributions anonymous** - do not add author names, emails, or other identifying information
+
+## SSH Configuration
+
+This repository uses the `github-anon` SSH host alias for pushing:
+- **SSH Host**: `github-anon` (configured in `~/.ssh/config`)
+- **SSH Key**: `~/.ssh/id_newusemame`
+- **Remote URL**: `git@github-anon:new-usemame/ChangeDetector-With-AI.git`
+
+When pushing changes, the remote is already configured to use the anonymous SSH key.
