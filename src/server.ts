@@ -34,8 +34,11 @@ app.get('/', (req: Request, res: Response) => {
       'POST /validate-change': 'Validate if a change is meaningful',
       'POST /repair-selector': 'Generate new selector when old one breaks',
       'POST /match-product': 'Match products across URL/ID changes',
+      'POST /webhook/changedetection': 'Webhook for changedetection.io integration',
+      'POST /webhook/price-check': 'Simple price check endpoint',
       'GET /health': 'Health check endpoint',
     },
+    docs: 'https://github.com/new-usemame/ChangeDetector-With-AI',
   });
 });
 

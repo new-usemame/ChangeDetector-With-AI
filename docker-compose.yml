@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  # changedetection.io - Main monitoring UI
+  changedetection:
+    image: ghcr.io/dgtlmoon/changedetection.io:latest
+    container_name: changedetection
+    hostname: changedetection
+    ports:
+      - "5000:5000"
+    volumes:
+      - changedetection-data:/datastore
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - BASE_URL=${CHANGEDETECTION_URL:-http://localhost:5000}
+      - PLAYWRIGHT_DRIVER_URL=ws://playwright-chrome:3000
+    depends_on:
+      - playwright-chrome
+      - ai-wrapper
+    restart: unless-stopped
+
+  # Playwright browser for JavaScript-heavy sites
+  playwright-chrome:
+    image: browserless/chrome:latest
+    container_name: playwright-chrome
+    hostname: playwright-chrome
+    restart: unless-stopped
+    environment:
+      - SCREEN_WIDTH=1920
+      - SCREEN_HEIGHT=1080
+      - SCREEN_DEPTH=24
+      - MAX_CONCURRENT_SESSIONS=10
+      - CONNECTION_TIMEOUT=300000
+      - PREBOOT_CHROME=true
+      - KEEP_ALIVE=true
+
+  # AI Wrapper service for intelligent extraction
+  ai-wrapper:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai-wrapper
+    hostname: ai-wrapper
+    ports:
+      - "3000:3000"
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - OPENROUTER_MODEL=${OPENROUTER_MODEL:-openai/gpt-4o-mini}
+      - PORT=3000
+      - LOG_LEVEL=info
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  changedetection-data:

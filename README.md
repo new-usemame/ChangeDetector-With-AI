@@ -1,100 +1,117 @@
-# AI Wrapper for changedetection.io
+# AI-Enhanced Price Tracker
 
-An AI-powered wrapper service that enhances [changedetection.io](https://changedetection.io) with semantic price extraction, automatic selector repair, false positive filtering, and product matching capabilities. Uses OpenRouter to access various LLM models for intelligent web scraping.
+A full-stack price monitoring solution combining [changedetection.io](https://changedetection.io) with AI-powered extraction. Monitor any product page and get intelligent notifications when prices drop.
 
 ## Features
 
-- **Semantic Price Extraction**: Extract product prices from HTML without relying on brittle CSS/XPath selectors
-- **Automatic Selector Repair**: Detect broken selectors and generate new ones using AI
-- **False Positive Filtering**: Distinguish real price changes from noise (ads, timestamps, layout changes)
-- **Product Matching**: Match products across URL/ID changes using semantic similarity
-- **OpenRouter Integration**: Access hundreds of AI models through a single API
+- **Visual Web GUI** - Easy-to-use interface from changedetection.io
+- **AI Price Extraction** - Finds prices without brittle CSS selectors
+- **Smart Notifications** - Filters out false positives (ads, timestamps)
+- **Auto-Healing Selectors** - AI repairs broken selectors automatically
+- **JavaScript Support** - Handles dynamic sites via Playwright browser
+- **Multi-Site Support** - Works on any e-commerce site
+
+## Quick Start (Docker Compose)
+
+### 1. Clone and configure
+
+```bash
+git clone https://github.com/new-usemame/ChangeDetector-With-AI.git
+cd ChangeDetector-With-AI
+
+# Copy and edit environment file
+cp env.example .env
+```
+
+### 2. Add your OpenRouter API key
+
+Edit `.env` and add your API key from [openrouter.ai/keys](https://openrouter.ai/keys):
+
+```
+OPENROUTER_API_KEY=sk-or-v1-your-key-here
+```
+
+### 3. Start the stack
+
+```bash
+docker-compose up -d
+```
+
+### 4. Access the UI
+
+Open **http://localhost:5000** in your browser.
 
 ## Architecture
 
-The service acts as a standalone HTTP API that changedetection.io can call to enhance its monitoring capabilities. It uses OpenRouter to access LLM models for semantic understanding of web pages.
-
 ```
-changedetection.io → AI Wrapper Service → OpenRouter API
+┌─────────────────────────────────────────────────────────────────┐
+│                        Your Browser                              │
+│                    http://localhost:5000                         │
+└─────────────────────────┬───────────────────────────────────────┘
+                          │
+┌─────────────────────────▼───────────────────────────────────────┐
+│              changedetection.io (Port 5000)                      │
+│  • Web UI for managing watches                                   │
+│  • Scheduling & notifications                                    │
+│  • Stores watch history                                          │
+└─────────────────────────┬───────────────────────────────────────┘
+                          │
+          ┌───────────────┴───────────────┐
+          │                               │
+┌─────────▼─────────┐         ┌──────────▼──────────┐
+│  Playwright       │         │  AI Wrapper         │
+│  (Headless Chrome)│         │  (Port 3000)        │
+│  • Renders JS     │         │  • Price extraction │
+│  • Screenshots    │         │  • Selector repair  │
+└───────────────────┘         │  • False positive   │
+                              │    filtering        │
+                              └──────────┬──────────┘
+                                         │
+                              ┌──────────▼──────────┐
+                              │  OpenRouter API     │
+                              │  • GPT-4o-mini      │
+                              │  • Claude           │
+                              │  • Other LLMs       │
+                              └─────────────────────┘
 ```
 
-## Prerequisites
+## How to Use
 
-- Node.js 18+ 
-- OpenRouter API key ([Get one here](https://openrouter.ai/keys))
-- Railway account (for deployment)
+### Adding a Price Watch
 
-## Installation
+1. Open **http://localhost:5000**
+2. Click **"Add Watch"** or **"Edit" → "Watches"**
+3. Enter the product URL you want to monitor
+4. Click **"Watch"**
 
-### Local Development
+### Configuring AI-Enhanced Extraction
 
-1. Clone the repository:
+For each watch, you can configure it to use the AI wrapper:
+
+1. Click on a watch to edit it
+2. Go to **"Notifications"** tab
+3. Add a webhook notification pointing to:
+   ```
+   http://ai-wrapper:3000/webhook/changedetection
+   ```
+4. The AI will process each change and extract price data
+
+### Using AI Price Extraction Directly
+
+You can also call the AI wrapper API directly:
+
 ```bash
-git clone <your-repo-url>
-cd changedetector_with_ai
-```
+# Extract price from HTML
+curl -X POST http://localhost:3000/extract-price \
+  -H "Content-Type: application/json" \
+  -d '{
+    "html": "<html><body><span class=\"price\">$29.99</span></body></html>",
+    "url": "https://example.com/product"
+  }'
 
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Create a `.env` file:
-```bash
-OPENROUTER_API_KEY=your_openrouter_api_key_here
-PORT=3000
-OPENROUTER_MODEL=openai/gpt-4o-mini
-LOG_LEVEL=info
-```
-
-4. Build the project:
-```bash
-npm run build
-```
-
-5. Start the server:
-```bash
-npm start
-```
-
-For development with auto-reload:
-```bash
-npm run dev
-```
-
-## Railway Deployment
-
-1. **Create a Railway project** and connect it to your repository
-
-2. **Add environment variables** in Railway dashboard:
-   - `OPENROUTER_API_KEY` - Your OpenRouter API key (required)
-   - `PORT` - Server port (default: 3000, Railway will set this automatically)
-   - `OPENROUTER_MODEL` - Model to use (default: `openai/gpt-4o-mini`)
-   - `LOG_LEVEL` - Logging level (default: `info`)
-
-3. **Deploy**: Railway will automatically detect the Dockerfile and deploy your service
-
-4. **Get your service URL**: Railway will provide a public URL for your service
-
-## API Endpoints
-
-### POST /extract-price
-
-Extract product price and information from HTML using AI.
-
-**Request:**
-```json
+# Response:
 {
-  "html": "<html>...</html>",
-  "url": "https://example.com/product",
-  "previousPrice": "29.99"
-}
-```
-
-**Response:**
-```json
-{
-  "price": "24.99",
+  "price": "29.99",
   "currency": "USD",
   "productName": "Product Name",
   "available": true,
@@ -102,219 +119,87 @@ Extract product price and information from HTML using AI.
 }
 ```
 
-### POST /validate-change
+## Railway Deployment
 
-Validate if a detected change is meaningful or a false positive.
+To deploy on Railway:
 
-**Request:**
-```json
-{
-  "oldValue": "29.99",
-  "newValue": "24.99",
-  "context": "price"
-}
-```
+### Option 1: Deploy Both Services
 
-**Response:**
-```json
-{
-  "isValid": true,
-  "reason": "Price decreased by 16.7%",
-  "confidence": 0.92
-}
-```
+1. **Deploy AI Wrapper** (already done):
+   - Your service at: `https://your-ai-wrapper.railway.app`
 
-### POST /repair-selector
+2. **Deploy changedetection.io**:
+   - Create new Railway project
+   - Use Docker image: `ghcr.io/dgtlmoon/changedetection.io:latest`
+   - Add volume for `/datastore`
+   - Set `BASE_URL` to your Railway URL
 
-Generate a new CSS/XPath selector when the old one breaks.
+3. **Connect them**:
+   - In changedetection.io, configure webhook URL to your AI wrapper
 
-**Request:**
-```json
-{
-  "html": "<html>...</html>",
-  "targetDescription": "the main product price",
-  "oldSelector": ".price-old",
-  "selectorType": "css"
-}
-```
-
-**Response:**
-```json
-{
-  "selector": ".product-price-main",
-  "selectorType": "css",
-  "confidence": 0.85,
-  "explanation": "Found stable class name for price element"
-}
-```
-
-### POST /match-product
-
-Match products across different URLs or IDs to determine if they're the same product.
-
-**Request:**
-```json
-{
-  "product1": {
-    "name": "Product Name",
-    "url": "https://store1.com/product/123",
-    "price": "29.99",
-    "sku": "SKU123"
-  },
-  "product2": {
-    "name": "Product Name",
-    "url": "https://store1.com/product/456",
-    "price": "29.99",
-    "sku": "SKU456"
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "isMatch": true,
-  "confidence": 0.92,
-  "reason": "Same product name and price, likely variant",
-  "similarityScore": 0.95
-}
-```
-
-### GET /health
-
-Health check endpoint for monitoring.
-
-**Response:**
-```json
-{
-  "status": "healthy",
-  "timestamp": "2024-01-01T00:00:00.000Z",
-  "service": "changedetector-ai-wrapper"
-}
-```
-
-## Integration with changedetection.io
-
-### Option 1: Webhook Integration
-
-Configure changedetection.io to call the wrapper service via webhooks before sending notifications:
-
-1. In changedetection.io, set up a webhook notification
-2. Point it to your wrapper service URL: `https://your-service.railway.app/validate-change`
-3. The wrapper will validate changes and filter false positives
-
-### Option 2: Custom Filter
-
-Use the wrapper as a custom filter in changedetection.io:
-
-1. Configure changedetection.io to use your service URL
-2. Set up filters that call the wrapper endpoints
-3. The wrapper will process changes and return validation results
-
-### Option 3: External Service
-
-Call the wrapper service directly from changedetection.io's custom scripts or filters:
-
-```javascript
-// Example: Validate a change before notification
-const response = await fetch('https://your-service.railway.app/validate-change', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    oldValue: oldPrice,
-    newValue: newPrice,
-    context: 'price'
-  })
-});
-
-const result = await response.json();
-if (result.isValid && result.confidence > 0.8) {
-  // Proceed with notification
-}
-```
-
-## Configuration
-
-### Environment Variables
-
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `OPENROUTER_API_KEY` | OpenRouter API key | - | Yes |
-| `PORT` | Server port | 3000 | No |
-| `OPENROUTER_MODEL` | OpenRouter model to use | `openai/gpt-4o-mini` | No |
-| `LOG_LEVEL` | Logging level (debug/info/warn/error) | `info` | No |
-
-### Model Selection
-
-You can use any model available on OpenRouter. Recommended models:
-
-- `openai/gpt-4o-mini` - Fast and cost-effective (default)
-- `openai/gpt-4o` - More accurate but slower
-- `anthropic/claude-3-haiku` - Good balance of speed and accuracy
-- `google/gemini-pro` - Alternative option
-
-See [OpenRouter Models](https://openrouter.ai/models) for the full list.
-
-## Development
-
-### Project Structure
-
-```
-/
-├── src/
-│   ├── server.ts              # Express server setup
-│   ├── routes/                # API route handlers
-│   ├── services/              # Business logic services
-│   ├── utils/                 # Utility functions
-│   └── config/                # Configuration
-├── Dockerfile                 # Docker configuration
-├── railway.json               # Railway deployment config
-└── package.json
-```
-
-### Running Tests
+### Option 2: Use Docker Compose on a VPS
 
 ```bash
-npm run type-check  # TypeScript type checking
+# On your VPS
+git clone https://github.com/new-usemame/ChangeDetector-With-AI.git
+cd ChangeDetector-With-AI
+cp .env.docker .env
+# Edit .env with your OPENROUTER_API_KEY
+docker-compose up -d
 ```
 
-### Building
+## API Endpoints (AI Wrapper)
 
-```bash
-npm run build  # Compile TypeScript to JavaScript
-```
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/extract-price` | POST | Extract price from HTML using AI |
+| `/validate-change` | POST | Check if a change is real or noise |
+| `/repair-selector` | POST | Generate new selector when old breaks |
+| `/match-product` | POST | Match products across URL changes |
+| `/webhook/changedetection` | POST | Webhook for changedetection.io |
+| `/webhook/price-check` | POST | Simple price check endpoint |
+| `/health` | GET | Health check |
+
+## Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `OPENROUTER_API_KEY` | OpenRouter API key | Required |
+| `OPENROUTER_MODEL` | LLM model to use | `openai/gpt-4o-mini` |
+| `PORT` | AI wrapper port | `3000` |
+| `CHANGEDETECTION_URL` | Public URL for changedetection.io | `http://localhost:5000` |
+
+## Services
+
+| Service | Port | Description |
+|---------|------|-------------|
+| changedetection.io | 5000 | Main web UI |
+| AI Wrapper | 3000 | AI extraction API |
+| Playwright Chrome | - | Headless browser (internal) |
 
 ## Troubleshooting
 
-### Service won't start
+### "No price found"
+- The page might need JavaScript rendering
+- In changedetection.io, enable "Fetch with Browser" for that watch
 
-- Check that `OPENROUTER_API_KEY` is set correctly
-- Verify Node.js version is 18+
-- Check logs for specific error messages
+### Webhook not working
+- Ensure AI wrapper is running: `curl http://localhost:3000/health`
+- Check logs: `docker-compose logs ai-wrapper`
 
-### API calls failing
+### High API costs
+- Switch to a cheaper model: `OPENROUTER_MODEL=openai/gpt-4o-mini`
+- Reduce check frequency in changedetection.io
 
-- Verify OpenRouter API key is valid and has credits
-- Check that the model name is correct
-- Review logs for detailed error messages
+## Recommended Models
 
-### Selector repair not working
-
-- Ensure HTML content is provided in the request
-- Check that target description is clear and specific
-- Verify the model has enough context (HTML might be too large)
+| Model | Speed | Cost | Best For |
+|-------|-------|------|----------|
+| `openai/gpt-4o-mini` | Fast | Low | Default, most cases |
+| `anthropic/claude-3-haiku` | Fast | Low | Alternative |
+| `openai/gpt-4o` | Medium | Medium | Complex pages |
+| `anthropic/claude-3.5-sonnet` | Medium | Medium | High accuracy |
 
 ## License
 
 MIT
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## Support
-
-For issues and questions:
-- Open an issue on GitHub
-- Check changedetection.io documentation
-- Review OpenRouter documentation
