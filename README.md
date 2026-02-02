@@ -119,33 +119,70 @@ curl -X POST http://localhost:3000/extract-price \
 }
 ```
 
-## Railway Deployment
+## Railway Deployment (Recommended)
 
-To deploy on Railway:
+Deploy the complete stack on Railway with multiple services in one project.
 
-### Option 1: Deploy Both Services
+### Step 1: Deploy AI Wrapper
 
-1. **Deploy AI Wrapper** (already done):
-   - Your service at: `https://your-ai-wrapper.railway.app`
+1. Go to [Railway](https://railway.app) and create a new project
+2. Click **"Deploy from GitHub repo"**
+3. Select `new-usemame/ChangeDetector-With-AI`
+4. Railway auto-detects the Dockerfile and deploys
+5. Add environment variable: `OPENROUTER_API_KEY` = your key
+6. Generate a public domain (Settings → Networking)
 
-2. **Deploy changedetection.io**:
-   - Create new Railway project
-   - Use Docker image: `ghcr.io/dgtlmoon/changedetection.io:latest`
-   - Add volume for `/datastore`
-   - Set `BASE_URL` to your Railway URL
+### Step 2: Add changedetection.io Service
 
-3. **Connect them**:
-   - In changedetection.io, configure webhook URL to your AI wrapper
+In the **same Railway project**:
 
-### Option 2: Use Docker Compose on a VPS
+1. Click **"+ New Service"** → **"GitHub Repo"**
+2. Select the same repo, but set **Root Directory** to `changedetection`
+3. Add a **Volume**: mount path `/datastore`
+4. Add environment variables:
+   - `PORT` = `5000`
+   - `BASE_URL` = `https://${{RAILWAY_PUBLIC_DOMAIN}}`
+   - `PLAYWRIGHT_DRIVER_URL` = `ws://playwright.railway.internal:3000` (if using Playwright)
+5. Generate a public domain
+
+### Step 3: Add Playwright Service (Optional - for JS-heavy sites)
+
+In the **same Railway project**:
+
+1. Click **"+ New Service"** → **"GitHub Repo"**
+2. Select the same repo, set **Root Directory** to `playwright`
+3. No public domain needed (internal only)
+
+### Step 4: Connect the Services
+
+In changedetection.io's webhook settings, use the **internal URL**:
+```
+http://[ai-wrapper-service-name].railway.internal:3000/webhook/changedetection
+```
+
+Replace `[ai-wrapper-service-name]` with your AI wrapper's service name in Railway.
+
+### Railway Project Structure
+
+```
+Railway Project
+├── ai-wrapper (root: /)
+│   └── Your AI extraction service
+├── changedetection (root: /changedetection)
+│   └── Web UI + monitoring
+└── playwright (root: /playwright) [optional]
+    └── Headless browser for JS sites
+```
+
+## Docker Compose (Local/VPS)
 
 ```bash
-# On your VPS
 git clone https://github.com/new-usemame/ChangeDetector-With-AI.git
 cd ChangeDetector-With-AI
-cp .env.docker .env
+cp env.example .env
 # Edit .env with your OPENROUTER_API_KEY
 docker-compose up -d
+# Open http://localhost:5000
 ```
 
 ## API Endpoints (AI Wrapper)
